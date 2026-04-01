@@ -1,55 +1,77 @@
-import chalk from "chalk";
-import { CONFIG } from "../config";
+// ════════════════════════════════════════════════════════════
+// Zero-dependency structured logger with ANSI colours
+// ════════════════════════════════════════════════════════════
 
-const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
-const currentLevel = LEVELS[CONFIG.LOG_LEVEL] ?? 1;
+const C = {
+  reset:    '\x1b[0m',
+  bold:     '\x1b[1m',
+  dim:      '\x1b[2m',
+  red:      '\x1b[31m',
+  green:    '\x1b[32m',
+  yellow:   '\x1b[33m',
+  blue:     '\x1b[34m',
+  magenta:  '\x1b[35m',
+  cyan:     '\x1b[36m',
+  white:    '\x1b[37m',
+  bgRed:    '\x1b[41m',
+  bgGreen:  '\x1b[42m',
+  bgYellow: '\x1b[43m',
+};
 
-function ts(): string {
-  return new Date().toISOString().replace("T", " ").slice(0, 23);
+enum Level { DEBUG = 0, INFO = 1, WARN = 2, ERROR = 3 }
+
+const LEVEL_LABEL: Record<Level, string> = {
+  [Level.DEBUG]: `${C.dim}DBG${C.reset}`,
+  [Level.INFO]:  `${C.cyan}INF${C.reset}`,
+  [Level.WARN]:  `${C.yellow}WRN${C.reset}`,
+  [Level.ERROR]: `${C.red}ERR${C.reset}`,
+};
+
+class Logger {
+  private level: Level;
+
+  constructor(level: string = 'INFO') {
+    this.level = Level[level as keyof typeof Level] ?? Level.INFO;
+  }
+
+  private log(lvl: Level, tag: string, msg: string, meta?: unknown): void {
+    if (lvl < this.level) return;
+    const ts = new Date().toISOString().slice(11, 23);
+    const prefix = `${C.dim}${ts}${C.reset} ${LEVEL_LABEL[lvl]} ${C.bold}[${tag}]${C.reset}`;
+    const line = meta !== undefined
+      ? `${prefix} ${msg} ${C.dim}${JSON.stringify(meta)}${C.reset}`
+      : `${prefix} ${msg}`;
+    console.log(line);
+  }
+
+  debug(tag: string, msg: string, meta?: unknown) { this.log(Level.DEBUG, tag, msg, meta); }
+  info(tag: string, msg: string, meta?: unknown)  { this.log(Level.INFO, tag, msg, meta); }
+  warn(tag: string, msg: string, meta?: unknown)  { this.log(Level.WARN, tag, msg, meta); }
+  error(tag: string, msg: string, meta?: unknown) { this.log(Level.ERROR, tag, msg, meta); }
+
+  /** Green-highlighted trade execution log */
+  trade(msg: string): void {
+    const ts = new Date().toISOString().slice(11, 23);
+    console.log(`${C.dim}${ts}${C.reset} ${C.bgGreen}${C.bold} TRADE ${C.reset} ${msg}`);
+  }
+
+  /** Risk decision log */
+  risk(approved: boolean, msg: string): void {
+    const ts = new Date().toISOString().slice(11, 23);
+    const badge = approved
+      ? `${C.bgGreen}${C.bold} PASS ${C.reset}`
+      : `${C.bgRed}${C.bold} DENY ${C.reset}`;
+    console.log(`${C.dim}${ts}${C.reset} ${badge} ${msg}`);
+  }
+
+  /** Section divider */
+  divider(title?: string): void {
+    if (title) {
+      console.log(`\n${C.cyan}${'─'.repeat(20)} ${title} ${'─'.repeat(40 - title.length)}${C.reset}`);
+    } else {
+      console.log(`${C.dim}${'─'.repeat(64)}${C.reset}`);
+    }
+  }
 }
 
-export const log = {
-  debug(msg: string, data?: unknown) {
-    if (currentLevel <= 0)
-      console.log(
-        chalk.gray(`[${ts()}] [DBG] ${msg}`),
-        data !== undefined ? data : "",
-      );
-  },
-
-  info(msg: string, data?: unknown) {
-    if (currentLevel <= 1)
-      console.log(
-        chalk.cyan(`[${ts()}] [INF] ${msg}`),
-        data !== undefined ? data : "",
-      );
-  },
-
-  warn(msg: string, data?: unknown) {
-    if (currentLevel <= 2)
-      console.log(
-        chalk.yellow(`[${ts()}] [WRN] ${msg}`),
-        data !== undefined ? data : "",
-      );
-  },
-
-  error(msg: string, data?: unknown) {
-    if (currentLevel <= 3)
-      console.log(
-        chalk.red(`[${ts()}] [ERR] ${msg}`),
-        data !== undefined ? data : "",
-      );
-  },
-
-  trade(msg: string) {
-    console.log(chalk.green(`[${ts()}] [TRD] ${msg}`));
-  },
-
-  risk(msg: string) {
-    console.log(chalk.magenta(`[${ts()}] [RSK] ${msg}`));
-  },
-
-  report(line: string) {
-    console.log(chalk.white(line));
-  },
-};
+export const log = new Logger(process.env.LOG_LEVEL || 'INFO');

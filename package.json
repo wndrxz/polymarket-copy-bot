@@ -1,25 +1,33 @@
 {
   "name": "polymarket-copy-bot",
   "version": "1.0.0",
-  "private": true,
-  "description": "Polymarket copy-trading bot with paper trading and risk controls",
-  "main": "dist/index.js",
+  "description": "Production-grade Polymarket copy-trading bot with 10-layer risk engine, trader scoring, paper trading, and live API integration",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
+    "start": "ts-node src/index.ts",
     "build": "tsc",
-    "start:prod": "node dist/index.js"
+    "start:prod": "node dist/index.js",
+    "test": "ts-node tests/run.ts",
+    "clean": "rm -rf dist data/state.json"
   },
+  "keywords": [
+    "polymarket",
+    "copy-trading",
+    "prediction-markets",
+    "risk-management",
+    "paper-trading"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "axios": "^1.7.9",
-    "chalk": "^4.1.2",
-    "dotenv": "^16.4.7",
-    "ws": "^8.18.0"
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "@types/ws": "^8.5.13",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -1,80 +1,59 @@
-import dotenv from "dotenv";
+import * as dotenv from 'dotenv';
+import type { Config } from './core/types';
+
 dotenv.config();
 
-export const CONFIG = {
-  DRY_RUN: process.env.DRY_RUN !== "false",
-  MOCK_SIGNALS: process.env.MOCK_SIGNALS !== "false",
-  LOG_LEVEL: (process.env.LOG_LEVEL || "info") as
-    | "debug"
-    | "info"
-    | "warn"
-    | "error",
+function env(key: string, fallback: string): string {
+  return process.env[key] ?? fallback;
+}
 
-  CLOB_API_URL: process.env.CLOB_API_URL || "https://clob.polymarket.com",
-  DATA_API_URL: process.env.DATA_API_URL || "https://data-api.polymarket.com",
-  GAMMA_API_URL:
-    process.env.GAMMA_API_URL || "https://gamma-api.polymarket.com",
+function envNum(key: string, fallback: number): number {
+  const v = process.env[key];
+  return v !== undefined ? Number(v) : fallback;
+}
 
-  PAPER: {
-    STARTING_BALANCE: Number(process.env.STARTING_BALANCE) || 1000,
-    REPORT_INTERVAL_MS: 120_000,
-  },
+function envBool(key: string, fallback: boolean): boolean {
+  const v = process.env[key];
+  if (v === undefined) return fallback;
+  return v === 'true' || v === '1';
+}
 
-  RISK: {
-    MAX_POSITION_USDC: 100,
-    MIN_POSITION_USDC: 5,
-    BALANCE_RATIO: 0.1,
+export function loadConfig(): Config {
+  return {
+    dryRun:           envBool('DRY_RUN', true),
+    mockSignals:      envBool('MOCK_SIGNALS', true),
+    logLevel:         env('LOG_LEVEL', 'INFO'),
+    startingBalance:  envNum('STARTING_BALANCE', 1000),
 
-    MAX_EXPOSURE_PERCENT: 0.3,
-    MAX_POSITIONS: 10,
-    MAX_PER_MARKET_PERCENT: 0.15,
+    // Risk limits
+    maxExposurePct:   envNum('MAX_EXPOSURE_PCT', 30),
+    maxPositionPct:   envNum('MAX_POSITION_PCT', 15),
+    maxPositions:     envNum('MAX_POSITIONS', 10),
+    stopLossPct:      envNum('STOP_LOSS_PCT', 15),
+    takeProfitPct:    envNum('TAKE_PROFIT_PCT', 50),
+    dailyLossLimitPct:envNum('DAILY_LOSS_LIMIT_PCT', 10),
+    drawdownHaltPct:  envNum('DRAWDOWN_HALT_PCT', 25),
+    tradeCooldownMs:  envNum('TRADE_COOLDOWN_MS', 30_000),
+    minPrice:         envNum('MIN_PRICE', 0.05),
+    maxPrice:         envNum('MAX_PRICE', 0.95),
+    minLiquidity:     envNum('MIN_LIQUIDITY', 1000),
+    minTraderScore:   envNum('MIN_TRADER_SCORE', 40),
 
-    STOP_LOSS_PERCENT: -0.15,
-    TAKE_PROFIT_PERCENT: 0.5,
-    MAX_DAILY_LOSS_USDC: 200,
+    // Intervals
+    signalIntervalMs:       envNum('SIGNAL_INTERVAL_MS', 10_000),
+    priceUpdateIntervalMs:  envNum('PRICE_UPDATE_INTERVAL_MS', 5_000),
+    riskCheckIntervalMs:    envNum('RISK_CHECK_INTERVAL_MS', 3_000),
+    reportIntervalMs:       envNum('REPORT_INTERVAL_MS', 60_000),
+    persistIntervalMs:      envNum('PERSIST_INTERVAL_MS', 30_000),
 
-    MIN_MARKET_VOLUME_24H: 10_000,
-    MIN_MARKET_LIQUIDITY: 5_000,
-    MAX_PRICE: 0.95,
-    MIN_PRICE: 0.05,
+    // Targets
+    targetTraders: env('TARGET_TRADERS', '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean),
 
-    TRADE_COOLDOWN_MS: 5_000,
-    SAME_MARKET_COOLDOWN_MS: 60_000,
-  },
-
-  TRADER_SELECTION: {
-    MIN_WIN_RATE: 0.55,
-    MIN_ROI: 0.1,
-    MIN_TRADES: 20,
-  },
-
-  POLL_INTERVAL_MS: Number(process.env.POLL_INTERVAL_MS) || 5_000,
-  PNL_CHECK_INTERVAL_MS: 15_000,
-  MOCK_SIGNAL_INTERVAL_MS: 8_000,
-
-  TARGET_WALLETS: [
-    {
-      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-      label: "Trader_Alpha",
-      weight: 1.0,
-      enabled: true,
-    },
-    {
-      address: "0x1234567890abcdef1234567890abcdef12345678",
-      label: "Trader_Beta",
-      weight: 0.7,
-      enabled: true,
-    },
-    {
-      address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-      label: "Trader_Gamma",
-      weight: 0.5,
-      enabled: true,
-    },
-  ] as Array<{
-    address: string;
-    label: string;
-    weight: number;
-    enabled: boolean;
-  }>,
-};
+    // API
+    clobApiUrl: env('CLOB_API_URL', 'https://clob.polymarket.com'),
+    gammaApiUrl: env('GAMMA_API_URL', 'https://gamma-api.polymarket.com'),
+  };
+}
